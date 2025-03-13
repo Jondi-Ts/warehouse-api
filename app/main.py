@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routes import products, stock
+from app.routes import products, stock, warehouse
 from app.database import engine, Base
 
 #  Ensure database tables are created before starting

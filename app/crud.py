@@ -111,3 +111,57 @@ def get_low_stock_count(db: Session, threshold: int):
 
 def get_out_of_stock_count(db: Session):
     return db.query(models.Stock).filter(models.Stock.quantity == 0).count()
+
+
+# stock data for reports
+
+def get_all_stock_data(db: Session, low_stock_threshold: int = 10):
+    stock_data = (
+        db.query(
+            models.Product.id.label("product_id"),
+            models.Product.name.label("product_name"),
+            models.Product.manufacturer.label("manufacturer"),
+            func.sum(models.Stock.quantity).label("total_stock"),
+            func.count(models.Stock.id).label("stock_entries")
+        )
+            .join(models.Stock, models.Product.id == models.Stock.product_id)
+            .group_by(models.Product.id, models.Product.name, models.Product.manufacturer)
+            .all()
+    )
+
+    return [
+        {
+            "product_id": stock.product_id,
+            "product_name": stock.product_name,
+            "manufacturer": stock.manufacturer,
+            "total_stock": stock.total_stock,
+            "stock_entries": stock.stock_entries,
+            "low_stock_alert": stock.total_stock < low_stock_threshold  #
+        }
+        for stock in stock_data
+    ]
+
+
+def get_low_stock_alerts(db: Session, threshold: int = 10):
+    low_stock_data = (
+        db.query(
+            models.Stock.product_id,
+            models.Product.name,
+            models.Product.manufacturer,
+            func.sum(models.Stock.quantity).label("total_stock")
+        )
+            .join(models.Product, models.Product.id == models.Stock.product_id)
+            .group_by(models.Stock.product_id, models.Product.name, models.Product.manufacturer)
+            .having(func.sum(models.Stock.quantity) < threshold)
+            .all()
+    )
+
+    return [
+        {
+            "product_id": stock.product_id,
+            "product_name": stock.name,
+            "manufacturer": stock.manufacturer,
+            "total_stock": stock.total_stock
+        }
+        for stock in low_stock_data
+    ]

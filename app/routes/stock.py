@@ -50,3 +50,8 @@ def delete_stock_endpoint(stock_id: int, db: Session = Depends(database.get_db))
     if db_stock is None:
         raise HTTPException(status_code=404, detail="Stock entry not found")
     return db_stock
+
+
+@router.get("/stock/below-threshold/", response_model=list[schemas.Stock])
+def get_low_stock_products(minimum_quantity: int, db: Session = Depends(database.get_db)):
+    return crud.get_products_below_threshold(db, minimum_quantity)

@@ -77,3 +77,5 @@ def delete_stock(db: Session, stock_id: int):
     return db_stock
 
 
+def get_products_below_threshold(db: Session, minimum_quantity: int):
+    return db.query(models.Stock).filter(models.Stock.quantity < minimum_quantity).all()

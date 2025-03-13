@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routes import products  # ✅ Import product routes
+from app.routes import products, stock
 from app.database import engine, Base
 
 #  Ensure database tables are created before starting
@@ -10,3 +10,4 @@ app = FastAPI(title="Warehouse API")
 
 #  Register product routes
 app.include_router(products.router)
+app.include_router(stock.router)

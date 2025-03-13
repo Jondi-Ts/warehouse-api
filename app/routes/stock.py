@@ -7,7 +7,6 @@ router = APIRouter()
 
 @router.post("/stock/", response_model=schemas.Stock)
 def create_stock_endpoint(stock: schemas.StockCreate, db: Session = Depends(database.get_db)):
-    # ✅ Check if the product exists before adding stock
     db_product = crud.get_product_by_id(db, stock.product_id)
     if not db_product:
         raise HTTPException(status_code=400, detail="Product does not exist")
@@ -53,5 +52,5 @@ def delete_stock_endpoint(stock_id: int, db: Session = Depends(database.get_db))
 
 
 @router.get("/stock/below-threshold/", response_model=list[schemas.Stock])
-def get_low_stock_products(minimum_quantity: int, db: Session = Depends(database.get_db)):
+def get_low_stock_products(minimum_quantity: int = 10, db: Session = Depends(database.get_db)):
     return crud.get_products_below_threshold(db, minimum_quantity)

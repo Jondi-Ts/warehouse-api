@@ -11,3 +11,4 @@ app = FastAPI(title="Warehouse API")
 #  Register product routes
 app.include_router(products.router)
 app.include_router(stock.router)
+app.include_router(warehouse.router)

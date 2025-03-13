@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app import models, schemas
 
@@ -94,3 +95,19 @@ def delete_stock(db: Session, stock_id: int):
 
 def get_products_below_threshold(db: Session, minimum_quantity: int):
     return db.query(models.Stock).filter(models.Stock.quantity < minimum_quantity).all()
+
+
+def get_total_products(db: Session):
+    return db.query(models.Product).count()
+
+
+def get_total_stock(db: Session):
+    return db.query(func.sum(models.Stock.quantity)).scalar() or 0
+
+
+def get_low_stock_count(db: Session, threshold: int):
+    return db.query(models.Stock).filter(models.Stock.quantity < threshold).count()
+
+
+def get_out_of_stock_count(db: Session):
+    return db.query(models.Stock).filter(models.Stock.quantity == 0).count()

@@ -4,7 +4,7 @@ from app import models, schemas
 
 class StockCRUD:
     def __init__(self, db: Session):
-        self.db = db  # ✅ Store database session
+        self.db = db  #
 
     def create_stock(self, stock: schemas.StockCreate):
         db_stock = models.Stock(**stock.dict())

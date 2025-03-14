@@ -4,7 +4,7 @@ from app import models, schemas
 
 class ProductCRUD:
     def __init__(self, db: Session):
-        self.db = db  # ✅ Store database session
+        self.db = db
 
     def create_product(self, product: schemas.ProductCreate):
         db_product = models.Product(

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app import crud, schemas, database
+from app.crud import products_crud as crud
 
 # Create a router for product-related endpoints
 router = APIRouter()

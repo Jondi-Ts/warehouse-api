@@ -9,15 +9,12 @@ router = APIRouter()
 
 #
 @router.get("/warehouse/stats")
-def get_warehouse_statistics(
-        db: Session = Depends(database.get_db),
-        low_stock_threshold: int = 10
-):
+def get_warehouse_statistics(db: Session = Depends(database.get_db)):
     total_products = crud.get_total_products(db)
     total_stock = crud.get_total_stock(db)
-    low_stock_count = crud.get_low_stock_count(db, low_stock_threshold)
+    low_stock_count = crud.get_low_stock_count(db)
     out_of_stock_count = crud.get_out_of_stock_count(db)
-    low_stock_alerts = crud.get_low_stock_alerts(db, low_stock_threshold)
+    low_stock_alerts = crud.get_low_stock_alerts(db)
 
     return {
         "total_products": total_products,

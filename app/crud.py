@@ -105,9 +105,15 @@ def get_total_stock(db: Session):
     return db.query(func.sum(models.Stock.quantity)).scalar() or 0
 
 
-def get_low_stock_count(db: Session, threshold: int):
-    return db.query(models.Stock).filter(models.Stock.quantity < threshold).count()
-
+def get_low_stock_count(db: Session, threshold: int = 10):
+    return (
+        db.query(models.Stock.product_id)
+        .join(models.Product, models.Stock.product_id == models.Product.id)
+        .group_by(models.Stock.product_id)
+        .having(func.sum(models.Stock.quantity) < threshold)
+        .having(func.sum(models.Stock.quantity) > 0)
+        .count()
+    )
 
 def get_out_of_stock_count(db: Session):
     return db.query(models.Stock).filter(models.Stock.quantity == 0).count()
@@ -150,10 +156,11 @@ def get_low_stock_alerts(db: Session, threshold: int = 10):
             models.Product.manufacturer,
             func.sum(models.Stock.quantity).label("total_stock")
         )
-            .join(models.Product, models.Product.id == models.Stock.product_id)
-            .group_by(models.Stock.product_id, models.Product.name, models.Product.manufacturer)
-            .having(func.sum(models.Stock.quantity) < threshold)
-            .all()
+        .join(models.Product, models.Product.id == models.Stock.product_id)
+        .group_by(models.Stock.product_id, models.Product.name, models.Product.manufacturer)
+        .having(func.sum(models.Stock.quantity) < threshold)
+        .having(func.sum(models.Stock.quantity) > 0)
+        .all()
     )
 
     return [

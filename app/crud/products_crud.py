@@ -2,42 +2,42 @@ from sqlalchemy.orm import Session
 from app import models, schemas
 
 
-def create_product(db: Session, product: schemas.ProductCreate):
-    db_prodcut = models.Product(
-        name=product.name,
-        price=product.price,
-        category=product.category,
-        manufacturer=product.manufacturer
-    )
-    db.add(db_prodcut)
-    db.commit()
-    db.refresh(db_prodcut)
-    return db_prodcut
+class ProductCRUD:
+    def __init__(self, db: Session):
+        self.db = db  # ✅ Store database session
 
+    def create_product(self, product: schemas.ProductCreate):
+        db_product = models.Product(
+            name=product.name,
+            price=product.price,
+            category=product.category,
+            manufacturer=product.manufacturer
+        )
+        self.db.add(db_product)
+        self.db.commit()
+        self.db.refresh(db_product)
+        return db_product
 
-def get_products(db: Session, skip: int = 0, limit: int = 10):
-    return db.query(models.Product).offset(skip).limit(limit).all()
+    def get_products(self, skip: int = 0, limit: int = 10):
+        return self.db.query(models.Product).offset(skip).limit(limit).all()
 
+    def get_product_by_id(self, product_id: int):
+        return self.db.query(models.Product).filter(models.Product.id == product_id).first()
 
-def get_product_by_id(db: Session, product_id: int):
-    return db.query(models.Product).filter(models.Product.id == product_id).first()
+    def update_product(self, product_id: int, product_update: schemas.ProductUpdate):
+        db_product = self.get_product_by_id(product_id)
+        if not db_product:
+            return None
+        for key, value in product_update.dict(exclude_unset=True).items():
+            setattr(db_product, key, value)
+        self.db.commit()
+        self.db.refresh(db_product)
+        return db_product
 
-
-def update_product(db: Session, product_id: int, product_update: schemas.ProductUpdate):
-    db_product = db.query(models.Product).filter(models.Product.id == product_id).first()
-    if not db_product:
-        return None
-    for key, value in product_update.dict(exclude_unset=True).items():
-        setattr(db_product, key, value)
-    db.commit()
-    db.refresh(db_product)
-    return db_product
-
-
-def delete_product(db: Session, product_id: int):
-    db_product = db.query(models.Product).filter(models.Product.id == product_id).first()
-    if not db_product:
-        return None
-    db.delete(db_product)
-    db.commit()
-    return db_product
+    def delete_product(self, product_id: int):
+        db_product = self.get_product_by_id(product_id)
+        if not db_product:
+            return None
+        self.db.delete(db_product)
+        self.db.commit()
+        return db_product

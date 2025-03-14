@@ -1,50 +1,43 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app import crud, schemas, database
-from app.crud import products_crud as crud
-
-# Create a router for product-related endpoints
-router = APIRouter()
+from app import schemas, database
+from app.crud.products_crud import ProductCRUD
 
 
-@router.post("/products/", response_model=schemas.Product)
-def create_product_endpoint(
-        product: schemas.ProductCreate, db: Session = Depends(database.get_db)
-):
-    return crud.create_product(db, product)
+class ProductRouter:
+    def __init__(self, db: Session = Depends(database.get_db)):
+        self.router = APIRouter()
+        self.db = db
+        self.product_crud = ProductCRUD(self.db)
+        self.router.add_api_route("/products/", self.create_product, methods=["POST"])
+        self.router.add_api_route("/products/", self.get_products, methods=["GET"])
+        self.router.add_api_route("/products/{product_id}", self.get_product_by_id, methods=["GET"])
+        self.router.add_api_route("/products/{product_id}", self.update_product, methods=["PUT"])
+        self.router.add_api_route("/products/{product_id}", self.delete_product, methods=["DELETE"])
+
+    def create_product(self, product: schemas.ProductCreate):
+        return self.product_crud.create_product(product)
+
+    def get_products(self, skip: int = 0, limit: int = 10):
+        return self.product_crud.get_products(skip, limit)
+
+    def get_product_by_id(self, product_id: int):
+        product = self.product_crud.get_product_by_id(product_id)
+        if not product:
+            raise HTTPException(status_code=404, detail="Product not found")
+        return product
+
+    def update_product(self, product_id: int, product_update: schemas.ProductUpdate):
+        updated_product = self.product_crud.update_product(product_id, product_update)
+        if not updated_product:
+            raise HTTPException(status_code=404, detail="Product not found")
+        return updated_product
+
+    def delete_product(self, product_id: int):
+        deleted_product = self.product_crud.delete_product(product_id)
+        if not deleted_product:
+            raise HTTPException(status_code=404, detail="Product not found")
+        return deleted_product
 
 
-@router.get("/products/", response_model=list[schemas.Product])
-def get_products_endpoint(
-        skip: int = 0, limit: int = 10, db: Session = Depends(database.get_db)
-):
-    return crud.get_products(db, skip=skip, limit=limit)
-
-
-@router.get("/products/{product_id}", response_model=schemas.Product)
-def get_product_endpoint(product_id: int, db: Session = Depends(database.get_db)):
-    db_product = crud.get_product_by_id(db, product_id)
-    if db_product is None:
-        raise HTTPException(status_code=404, detail="Product not found")
-    return db_product
-
-
-#
-@router.put("/products/{product_id}", response_model=schemas.Product)
-def update_product_endpoint(
-        product_id: int,
-        product_update: schemas.ProductUpdate,
-        db: Session = Depends(database.get_db)
-):
-    db_product = crud.update_product(db, product_id, product_update)
-    if db_product is None:
-        raise HTTPException(status_code=404, detail="Product not found")
-    return db_product
-
-
-@router.delete("/products/{product_id}", response_model=schemas.Product)
-def delete_product_endpoint(product_id: int, db: Session = Depends(database.get_db)):
-    db_product = crud.delete_product(db, product_id)
-    if db_product is None:
-        raise HTTPException(status_code=404, detail="Product not found")
-    return db_product
+product_router = ProductRouter().router

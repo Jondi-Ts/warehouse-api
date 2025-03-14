@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app import database
 from app.crud.warehouse_crud import WarehouseCRUD
@@ -21,6 +21,9 @@ class WarehouseRouter:
         low_stock_alerts = warehouse_crud.get_low_stock_alerts()
         out_of_stock_products = warehouse_crud.get_out_of_stock_products()
 
+        if total_products == 0:
+            raise HTTPException(status_code=404, detail="No products found in the warehouse.")
+
         return {
             "total_products": total_products,
             "total_stock": total_stock,
@@ -31,8 +34,10 @@ class WarehouseRouter:
         }
 
     def generate_report(self, db: Session = Depends(database.get_db)):
-        return self.warehouse_crud_class(db).get_all_stock_data()
-
+        stock_data = self.warehouse_crud_class(db).get_all_stock_data()
+        if not stock_data:
+            raise HTTPException(status_code=404, detail="No stock data available for report generation.")
+        return stock_data
 
 
 def get_warehouse_router():

@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 
 from app.database import engine, Base
-from app.routes.products import product_router
-from app.routes.stock import stock_router
-from app.routes.warehouse import warehouse_router
+from app.routes.products_route import product_router
+from app.routes.stock_route import stock_router
+from app.routes.warehouse_route import warehouse_router
 
 #  Ensure database tables are created before starting
 

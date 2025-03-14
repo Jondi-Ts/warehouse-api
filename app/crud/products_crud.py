@@ -24,6 +24,10 @@ class ProductCRUD:
     def get_product_by_id(self, product_id: int):
         return self.db.query(models.Product).filter(models.Product.id == product_id).first()
 
+    def get_product_by_name(self, product_name: str):
+
+        return self.db.query(models.Product).filter(models.Product.name == product_name).first()
+
     def update_product(self, product_id: int, product_update: schemas.ProductUpdate):
         db_product = self.get_product_by_id(product_id)
         if not db_product:

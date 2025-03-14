@@ -8,8 +8,8 @@ from app.crud.products_crud import ProductCRUD
 class StockRouter:
     def __init__(self):
         self.router = APIRouter()
-        self.stock_crud_class = StockCRUD  # ✅ Store only the class, not an instance
-        self.product_crud_class = ProductCRUD  # ✅ Store only the class, not an instance
+        self.stock_crud_class = StockCRUD
+        self.product_crud_class = ProductCRUD
 
         self.router.add_api_route("/stock/", self.create_stock, methods=["POST"])
         self.router.add_api_route("/stock/", self.get_stock, methods=["GET"])
@@ -19,22 +19,27 @@ class StockRouter:
         self.router.add_api_route("/stock/below-threshold/", self.get_low_stock_products, methods=["GET"])
 
     def create_stock(self, stock: schemas.StockCreate, db: Session = Depends(database.get_db)):
-        product_crud = self.product_crud_class(db)  # ✅ Inject fresh session per request
+        product_crud = self.product_crud_class(db)
         stock_crud = self.stock_crud_class(db)
 
         db_product = product_crud.get_product_by_id(stock.product_id)
         if not db_product:
-            raise HTTPException(status_code=400, detail="Product does not exist")
+            raise HTTPException(status_code=400,
+                                detail=f"Cannot add stock: Product ID {stock.product_id} does not exist.")
 
         return stock_crud.create_stock(stock)
 
     def get_stock(self, skip: int = 0, limit: int = 10, db: Session = Depends(database.get_db)):
-        return self.stock_crud_class(db).get_stock(skip, limit)
+
+        stock_entries = self.stock_crud_class(db).get_stock(skip, limit)
+        if not stock_entries:
+            raise HTTPException(status_code=404, detail="No stock entries found.")
+        return stock_entries
 
     def get_stock_by_product_id(self, product_id: int, db: Session = Depends(database.get_db)):
         db_stock = self.stock_crud_class(db).get_stock_by_product_id(product_id)
         if db_stock is None:
-            raise HTTPException(status_code=404, detail="Stock entry not found")
+            raise HTTPException(status_code=404, detail=f"Stock entry for product ID {product_id} not found.")
         return db_stock
 
     def reduce_stock(self, stock_id: int, quantity: int, db: Session = Depends(database.get_db)):
@@ -42,10 +47,14 @@ class StockRouter:
         db_stock = stock_crud.get_stock_by_id(stock_id)
 
         if not db_stock:
-            raise HTTPException(status_code=404, detail="Stock entry not found")
+            raise HTTPException(status_code=404, detail=f"❌ Stock entry with ID {stock_id} not found.")
+
+        if quantity <= 0:
+            raise HTTPException(status_code=400, detail="Quantity must be greater than 0.")
 
         if db_stock.quantity < quantity:
-            raise HTTPException(status_code=400, detail="Not enough stock available")
+            raise HTTPException(status_code=400,
+                                detail=f"Not enough stock available. Available: {db_stock.quantity}, Requested: {quantity}")
 
         db_stock.quantity -= quantity
         db.commit()
@@ -55,11 +64,14 @@ class StockRouter:
     def delete_stock(self, stock_id: int, db: Session = Depends(database.get_db)):
         db_stock = self.stock_crud_class(db).delete_stock(stock_id)
         if db_stock is None:
-            raise HTTPException(status_code=404, detail="Stock entry not found")
+            raise HTTPException(status_code=404, detail=f"Stock entry with ID {stock_id} not found.")
         return db_stock
 
     def get_low_stock_products(self, minimum_quantity: int = 10, db: Session = Depends(database.get_db)):
-        return self.stock_crud_class(db).get_products_below_threshold(minimum_quantity)
+        low_stock_products = self.stock_crud_class(db).get_products_below_threshold(minimum_quantity)
+        if not low_stock_products:
+            raise HTTPException(status_code=404, detail="No low-stock products found.")
+        return low_stock_products
 
 
 def get_stock_router():

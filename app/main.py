@@ -20,13 +20,13 @@ async def log_request(request: Request, call_next):
 
     request_body = await request.body()
     logger.info(
-        f"REQUEST: {request.client.host} {request.method} {request.url.path} - Body: {request_body.decode('utf-8') if request_body else 'No Body'} "
+        f"REQUEST: {request.client.host} {request.method} {request.url.path} - Body: {request_body.decode('utf-8') if request_body else 'No Body'}"
     )
 
     response = await call_next(request)
 
     duration = round(time.time() - start_time, 4)
-    logger.info(f"📤 RESPONSE: {request.client.host} {request.method} {request.url.path} - {response.status_code} ({duration}s)")
+    logger.info(f"RESPONSE: {request.client.host} {request.method} {request.url.path} - {response.status_code} ({duration}s)")
 
     return response
 
@@ -35,5 +35,4 @@ app.include_router(get_product_router())
 app.include_router(get_stock_router())
 app.include_router(get_warehouse_router())
 
-
-logger.info("🚀 Warehouse API started successfully!")
+logger.info("Warehouse API started successfully!")

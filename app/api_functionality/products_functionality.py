@@ -1,4 +1,4 @@
-from helpers.endpoints import Endpoints
+from helpers.config import Endpoints
 
 
 class ProductsFunctionality:

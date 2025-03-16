@@ -2,15 +2,16 @@ import pytest
 
 from app.api_functionality.products_functionality import ProductsFunctionality
 from helpers import helpers
+from helpers.config import Urls
 
 
 class TestProducts:
-    BASE_URL = "http://127.0.0.1:8000"
 
     @pytest.fixture(autouse=True)
     def setup_class(self, clients_request):
         self.client = clients_request
-        self.product_functionality = ProductsFunctionality(self.client, self.BASE_URL)
+        self.base_url = Urls.BASE_URL
+        self.product_functionality = ProductsFunctionality(self.client, self.base_url)
 
     @pytest.mark.parametrize("product_data", helpers.load_yaml_data("external_Files/products_data.yml"))
     def test_create_product_success(self, product_data):
@@ -37,7 +38,7 @@ class TestProducts:
 
     def test_update_nonexistent_product(self):
         update_data = {"name": "Nonexistent Product", "price": 29.99, "manufacturer": "None", "category": "None"}
-        response = self.product_functionality.update_product_by_id(1, update_data)
+        response = self.product_functionality.update_product_by_id(657, update_data)
         assert response.status_code == 404
 
     def test_delete_product_success(self):

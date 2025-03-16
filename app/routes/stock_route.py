@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
+import asyncio
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app import schemas, database
 from app.crud.stock_crud import StockCRUD
 from app.crud.products_crud import ProductCRUD
+from app.task_manager import create_task, update_task_status
 
 
 class StockRouter:
@@ -42,24 +44,44 @@ class StockRouter:
             raise HTTPException(status_code=404, detail=f"Stock entry for product ID {product_id} not found.")
         return db_stock
 
-    def reduce_stock(self, stock_id: int, quantity: int, db: Session = Depends(database.get_db)):
+    async def reduce_stock(self, stock_id: int, quantity: int,
+                           delay: int = Query(5, ge=1, le=10000),
+                           db: Session = Depends(database.get_db)):
+        """Handles API request and starts a background task with a custom delay."""
         stock_crud = self.stock_crud_class(db)
         db_stock = stock_crud.get_stock_by_id(stock_id)
 
         if not db_stock:
-            raise HTTPException(status_code=404, detail=f"❌ Stock entry with ID {stock_id} not found.")
+            raise HTTPException(status_code=404, detail="Stock not found.")
 
-        if quantity <= 0:
-            raise HTTPException(status_code=400, detail="Quantity must be greater than 0.")
+        if quantity <= 0 or db_stock.quantity < quantity:
+            raise HTTPException(status_code=400, detail="Invalid quantity.")
 
-        if db_stock.quantity < quantity:
-            raise HTTPException(status_code=400,
-                                detail=f"Not enough stock available. Available: {db_stock.quantity}, Requested: {quantity}")
+        # ✅ Create task ID and start background process with dynamic delay
+        task_id = create_task()
+        asyncio.create_task(self._reduce_stock_background(task_id, stock_id, quantity, delay))
 
-        db_stock.quantity -= quantity
-        db.commit()
-        db.refresh(db_stock)
-        return db_stock
+        return {"task_id": task_id, "message": "Stock reduction started", "expected_time": f"{delay} seconds"}
+
+    async def _reduce_stock_background(self, task_id: str, stock_id: int, quantity: int, delay: int):
+        """Runs stock reduction asynchronously with a user-defined delay."""
+        db = database.SessionLocal()
+        try:
+            await asyncio.sleep(delay)
+            stock_crud = self.stock_crud_class(db)
+            db_stock = stock_crud.get_stock_by_id(stock_id)
+
+            if db_stock:
+                db_stock.quantity -= quantity
+                db.commit()
+                db.refresh(db_stock)
+                update_task_status(task_id, "completed")
+            else:
+                update_task_status(task_id, "failed")
+        except Exception:
+            update_task_status(task_id, "failed")
+        finally:
+            db.close()
 
     def delete_stock(self, stock_id: int, db: Session = Depends(database.get_db)):
         db_stock = self.stock_crud_class(db).delete_stock(stock_id)

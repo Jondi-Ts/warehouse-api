@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from app.task_manager import task_store
+from app.task_manager import get_task_status
 
 
 class TaskRouter:
@@ -8,10 +8,11 @@ class TaskRouter:
         self.router.add_api_route("/tasks/{task_id}/status", self.get_task_status, methods=["GET"])
 
     def get_task_status(self, task_id: str):
-        """Check the status of a background task."""
-        status = task_store.get(task_id)
-        if status is None:
-            raise HTTPException(status_code=404, detail="Task ID not found")
+        """Returns the status of a background task."""
+        status = get_task_status(task_id)
+
+        if status == "not found":
+            raise HTTPException(status_code=404, detail="Task ID not found.")
 
         return {"task_id": task_id, "status": status}
 

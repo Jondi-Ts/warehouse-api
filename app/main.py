@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 import time
 from app.database import engine, Base
 from app.routes.products_route import get_product_router
@@ -15,18 +15,27 @@ app = FastAPI(title="Warehouse API")
 
 @app.middleware("http")
 async def log_request(request: Request, call_next):
-    """Logs detailed API requests and responses."""
-    start_time = time.time()  
+    """Middleware to log API requests and responses properly."""
+    start_time = time.time()
 
-    request_body = await request.body()
-    logger.info(
-        f"REQUEST: {request.client.host} {request.method} {request.url.path} - Body: {request_body.decode('utf-8') if request_body else 'No Body'} "
-    )
+    # Read request body safely
+    try:
+        body = await request.body()
+        body = body.decode("utf-8") if body else "No Body"
+    except Exception:
+        body = "Could not decode body"
 
-    response = await call_next(request)
+    logger.info(f"REQUEST: {request.client.host} {request.method} {request.url.path} | Body: {body}")
 
+    # Process the request and capture response
+    response: Response = await call_next(request)
     duration = round(time.time() - start_time, 4)
-    logger.info(f"📤 RESPONSE: {request.client.host} {request.method} {request.url.path} - {response.status_code} ({duration}s)")
+
+    # ✅ Explicitly use ERROR for 4xx and 5xx responses
+    if response.status_code >= 400:
+        logger.error(f"RESPONSE: {request.client.host} {request.method} {request.url.path} | Status: {response.status_code} | Time: {duration}s")
+    else:
+        logger.info(f"RESPONSE: {request.client.host} {request.method} {request.url.path} | Status: {response.status_code} | Time: {duration}s")
 
     return response
 
@@ -35,5 +44,4 @@ app.include_router(get_product_router())
 app.include_router(get_stock_router())
 app.include_router(get_warehouse_router())
 
-
-logger.info("🚀 Warehouse API started successfully!")
+logger.info("Warehouse API started successfully!")

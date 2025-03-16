@@ -1,5 +1,6 @@
 class Endpoints:
     PRODUCT_ENDPOINT = "/products"
+    STOCK_ENDPOINT = "/stock"
 
 
 class Urls:

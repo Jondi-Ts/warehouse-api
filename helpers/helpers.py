@@ -1,6 +1,7 @@
 import yaml
 from pathlib import Path
 
+
 def load_yaml_data(filepath: str):
     # Correctly resolve absolute path to the project root
     base_path = Path(__file__).resolve().parent.parent

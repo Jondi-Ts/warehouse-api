@@ -30,7 +30,8 @@ class StockRouter:
 
         db_product = product_crud.get_product_by_id(stock.product_id)
         if not db_product:
-            raise HTTPException(status_code=400, detail=f"Cannot add stock: Product ID {stock.product_id} does not exist.")
+            raise HTTPException(status_code=400,
+                                detail=f"Cannot add stock: Product ID {stock.product_id} does not exist.")
 
         return stock_crud.create_stock(stock)
 
@@ -65,19 +66,45 @@ class StockRouter:
         task_id = create_task()
         logger.info(f"Stock reduction started | Task ID: {task_id} | Delay: {delay}s")
 
-        async def stock_update_logic(task_id, quantity):
+        async def stock_update_logic(task_id, stock_id, quantity):
             """Handles stock reduction asynchronously with task tracking."""
             try:
                 await asyncio.sleep(delay)  # Simulate processing delay
-                db_stock.quantity -= quantity  # ✅ Use the passed quantity
+
+                # ✅ Create a new DB session for background task
+                db = database.SessionLocal()
+                stock_crud = self.stock_crud_class(db)
+
+                # 🔹 Fetch fresh stock data to avoid stale object issues
+                db_stock = stock_crud.get_stock_by_id(stock_id)
+
+                if not db_stock or db_stock.quantity < quantity:
+                    update_task_status(task_id, "failed")
+                    logger.error(f"Task {task_id} failed: Stock not available.")
+                    return
+
+                # ✅ Reduce stock safely
+                db_stock.quantity -= quantity
                 db.commit()
-                db.refresh(db_stock)
+                db.refresh(db_stock)  # Ensure it's updated in DB
+
                 update_task_status(task_id, "completed")
                 logger.info(f"Task {task_id} completed successfully.")
             except Exception as e:
                 db.rollback()
                 update_task_status(task_id, "failed")
                 logger.error(f"Task {task_id} failed due to error: {str(e)}")
+            finally:
+                db.close()  # ✅ Close session to avoid leaks
+
+        # ✅ Run the background task
+        asyncio.create_task(run_background_task(task_id, stock_update_logic, task_id, stock_id, quantity))
+
+        return {
+            "task_id": task_id,
+            "message": "Stock reduction started",
+            "expected_time": f"{delay} seconds"
+        }
 
     async def delete_stock(self, stock_id: int,
                            delay: int = Query(5, ge=1, le=10000),

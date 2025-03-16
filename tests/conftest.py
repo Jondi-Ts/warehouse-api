@@ -1,10 +1,10 @@
-# tests/conftest.py
+
 import pytest
-from fastapi.testclient import TestClient
-from app.main import app
+import requests
 
 
-@pytest.fixture(scope="class")
-def client():
-    with TestClient(app) as test_client:
-        yield test_client
+@pytest.fixture(scope="session")
+def clients_request():
+    """✅ Provides a Requests session for test clients."""
+    with requests.Session() as clients_request:
+        yield clients_request

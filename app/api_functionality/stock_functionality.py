@@ -13,3 +13,17 @@ class StockFunctionality:
         }
         response = self.client.post(f"{self.base_url}{Endpoints.STOCK_ENDPOINT}", json=data)
         return response
+
+    def get_stock_list(self):
+        response = self.client.get(f"{self.base_url}{Endpoints.STOCK_ENDPOINT}")
+        print(response.json())
+        return response
+
+    def reduce_stock_quantity(self, stock_id, reduce_amount, delay=5):
+        params = {"quantity": reduce_amount, "delay": delay}
+        reduce_response = self.client.put(f"{self.base_url}{Endpoints.STOCK_ENDPOINT}/{stock_id}/reduce", params=params)
+        return reduce_response
+
+    def get_stock_by_product_id(self, product_id):
+        response = self.client.get(f"{self.base_url}{Endpoints.STOCK_ENDPOINT}/{product_id}")
+        return response

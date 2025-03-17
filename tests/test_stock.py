@@ -66,4 +66,15 @@ class TestStocks:
         updated_stock = updated_stock_resp.json()
         assert updated_stock["quantity"] == 40
 
+    def test_get_low_stock_products(self):
+        # Setup: Create a new product
+        product_response = self.product_functionality.create_product(generate_mock_product())
+        product_id = product_response.json()["id"]
+        low_quantity = 5  # assuming the threshold is 10
+        stock_response = self.stock_functionality.create_stock(product_id, quantity=low_quantity)
+        low_stock_resp = self.stock_functionality.get_low_stock_products(minimum_quantity=10)
+        assert stock_response.status_code == 200
+        low_stock_products = low_stock_resp.json()
 
+        # Validate: Check the product appears in the low stock list
+        assert any(item["product_id"] == product_id for item in low_stock_products)

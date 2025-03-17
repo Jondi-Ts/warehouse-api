@@ -1,4 +1,4 @@
-from helpers.config import Endpoints
+from helpers.config import Endpoints, Urls
 
 
 class StockFunctionality:
@@ -27,3 +27,19 @@ class StockFunctionality:
     def get_stock_by_product_id(self, product_id):
         response = self.client.get(f"{self.base_url}{Endpoints.STOCK_ENDPOINT}/{product_id}")
         return response
+
+    def get_low_stock_products(self, minimum_quantity=10):
+        params = {"minimum_quantity": minimum_quantity}
+        response = self.client.get(f"{self.base_url}{Endpoints.STOCK_ENDPOINT}/below-threshold/", params=params)
+        return response
+
+    # TODO
+    def delete_stock(self):
+        pass
+
+
+# if __name__ == '__main__':
+#     import requests
+# stock = StockFunctionality(requests, Urls.BASE_URL)
+# # print(print(stock.reduce_stock_quantity(2, 35, 1)))
+# print(stock.get_low_stock_products(10))
